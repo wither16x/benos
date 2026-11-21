@@ -9,8 +9,11 @@ image: build
 	@echo "Building image: $(IMAGE)"
 	@mkdir -p images
 	@dd if=/dev/zero of=$(IMAGE) bs=512 count=2880 status=none
-	@mformat -i $(IMAGE) -f 1440 -B $(BOOTLOADER) ::
+	@mformat -v BENOS -i $(IMAGE) -f 1440 -B $(BOOTLOADER) ::
 	@mcopy -i $(IMAGE) $(KERNEL) ::
+	@for file in base/* ; do \
+		mcopy -i $(IMAGE) $$file :: ; \
+	done
 
 build:
 	@echo "Building bootloader..."

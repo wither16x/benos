@@ -3,3 +3,6 @@ Diagnostics:
 
 Index:
     StandardLibrary: No
+
+InlayHints:
+    Enabled: No

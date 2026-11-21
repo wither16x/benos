@@ -1,7 +1,8 @@
-#ifndef DISPLAY_H_
-#define DISPLAY_H_
+#ifndef LIB_DISPLAY_H_
+#define LIB_DISPLAY_H_
 
 void putchar(char ch);
 void print(const char *str);
+void print_until(const char *str, unsigned int limit);
 
-#endif /* DISPLAY_H_ */
+#endif /* LIB_DISPLAY_H_ */

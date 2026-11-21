@@ -19,11 +19,11 @@ sectors_per_track   dw 18
 head_count          dw 2
 hidden_sectors      dd 0
 large_sectors       dd 0
-driveno             db 0
+driveno             dw 0
 signature           db 0x29
-volume_id           dd 0x0000
-volume_label        db "BENOS"
-filesystem          db "FAT12"
+volume_id           dd 0x00000000
+volume_label        db "BENOS      "
+filesystem          db "FAT12   "
 
 start:
     xor ax, ax
