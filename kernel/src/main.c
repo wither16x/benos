@@ -1,4 +1,4 @@
-#include "display.h"
+#include "lib/display.h"
 
 void kmain(void)
 {
@@ -6,7 +6,7 @@ void kmain(void)
 
     for (;;) {
         __asm {
-            "hlt"
+            hlt
         };
     }
 }
