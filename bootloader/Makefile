@@ -10,14 +10,16 @@ TARGET := build/boot.bin
 all: $(TARGET)
 
 $(TARGET): $(BIN)
-	mkdir -p build
-	cat $< > $@
+	@mkdir -p $(dir $@)
+	@echo "Building $@"
+	@cat $^ > $@
 
 build/%.bin: src/%.asm
-	mkdir -p build
-	$(NASM) $(NASMFLAGS) -o $@ $<
+	@mkdir -p $(dir $@)
+	@echo "$(NASM) -o $@ $<"
+	@$(NASM) $(NASMFLAGS) -o $@ $<
 
 clean:
-	rm -rf build
+	@rm -rf build
 
 .PHONY: all clean

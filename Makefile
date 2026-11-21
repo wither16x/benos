@@ -1,28 +1,33 @@
-QEMU := qemu-system-i386
-IMAGE := images/benos.img
+MAKEFLAGS += --no-print-directory
+
+QEMU       := qemu-system-i386
+IMAGE      := images/benos.img
 BOOTLOADER := bootloader/build/boot.bin
-KERNEL := kernel/build/kernel.bin
+KERNEL     := kernel/build/kernel.bin
 
-image: $(IMAGE)
-
-$(IMAGE): build
-	mkdir -p images
-	dd if=/dev/zero of=$@ bs=512 count=2880
-	mformat -i $@ -f 1440 -B $(BOOTLOADER) ::
-	mcopy -i $@ $(KERNEL) ::
+image: build
+	@echo "Building image: $(IMAGE)"
+	@mkdir -p images
+	@dd if=/dev/zero of=$(IMAGE) bs=512 count=2880 status=none
+	@mformat -i $(IMAGE) -f 1440 -B $(BOOTLOADER) ::
+	@mcopy -i $(IMAGE) $(KERNEL) ::
 
 build:
-	$(MAKE) -C bootloader
-	$(MAKE) -C kernel
+	@echo "Building bootloader..."
+	@$(MAKE) -C bootloader
+	@echo "Building kernel..."
+	@$(MAKE) -C kernel
 
 clean:
-	$(MAKE) -C bootloader clean
-	$(MAKE) -C kernel clean
+	@echo "Cleaning..."
+	@$(MAKE) -C bootloader clean
+	@$(MAKE) -C kernel clean
 
 clean-all: clean
-	rm -rf images
+	@rm -rf images
 
-run:
-	$(QEMU) -drive format=raw,file=$(IMAGE),index=0,if=floppy
+run: image
+	@echo "Running $(IMAGE) in $(QEMU)..."
+	@$(QEMU) -drive format=raw,file=$(IMAGE),index=0,if=floppy
 
 .PHONY: build image clean clean-all run
