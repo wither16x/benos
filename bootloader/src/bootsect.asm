@@ -1,3 +1,5 @@
+; A FAT12 bootsector for BenOS.
+
 BITS 16
 ORG 0x7c00
 
@@ -34,12 +36,13 @@ start:
 
     call clear_screen
 
-    mov si, int_msg
-    call print_str
+    call show_menu
 
-    xor ax, ax
-    int 0x13
-    jc disk_error
+; If we get here then the user decided to load the kernel
+    call clear_screen
+
+; Try to load the kernel
+    call reset_disk
 
     mov ax, 19
     call calc_registers_from_logical
@@ -90,17 +93,9 @@ found_file:
 
     int 0x13
     jc disk_error
-    mov dl, byte [driveno]
-    call read_success
+
+    mov dl, byte [driveno] ; pass driveno to the kernel
     jmp 0x2000:0x0000
-
-read_success:
-    mov si, .message
-    call print_str
-
-    ret
-
-.message db "Found kernel", 13, 10, 0
 
 hang:
     hlt
@@ -108,8 +103,8 @@ hang:
 
 %include "display.asm"
 %include "disk.asm"
+%include "menu.asm"
 
-int_msg         db "Booting...", 13, 10, 0
 filename        db "KERNEL  BIN"
 
 times 510 - ($ - $$) db 0

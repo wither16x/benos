@@ -44,6 +44,17 @@ disk_error:
 
 .message db "Could not read from floppy. Press a key...", 0
 
+;; reset_disk -- Resets the disk
+reset_disk:
+    push ax
+
+    xor ax, ax
+    int 0x13
+    jc disk_error
+
+    pop ax
+    ret
+
 ;; reboot -- Reboots by jumping to the reset vector
 reboot:
     jmp 0xffff:0
