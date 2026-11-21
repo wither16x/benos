@@ -16,7 +16,7 @@ $(TARGET): $(BIN)
 
 build/%.bin: src/%.asm
 	@mkdir -p $(dir $@)
-	@echo "$(NASM) -o $@ $<"
+	@echo "$(NASM) $<"
 	@$(NASM) $(NASMFLAGS) -o $@ $<
 
 clean:

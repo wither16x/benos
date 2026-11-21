@@ -1,0 +1,9 @@
+format raw bin
+option quiet
+option nodefaultlibs
+option start=_start
+order
+    clname CODE
+    clname DATA
+    clname BSS noemit
+    clname STACK noemit
