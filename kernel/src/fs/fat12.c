@@ -1,11 +1,24 @@
 #include "fs/fat12.h"
 #include "bios/disk.h"
 #include "lib/format.h"
+#include "lib/string.h"
+#include "lib/memory.h"
 #include "kernel.h"
 
 #define OEM_LABEL_SIZE (8)
 #define VOLUME_LABEL_SIZE (11)
 #define FS_NAME_SIZE (8)
+
+/* End Of Directory */
+#define EOD (0x00)
+#define REMOVED (0xe5)
+#define VOLUME_LABEL (0x18)
+
+#define FILENAME_LENGTH (11)
+#define SECTOR_SIZE (512)
+#define ENTRY_SIZE (32)
+/* End Of Cluster */
+#define EOC (0x0fff)
 
 #pragma pack(push, 1)
 struct info {
@@ -31,23 +44,100 @@ struct info {
 };
 #pragma pack(pop)
 
+static struct info bpb;
+static ubyte_t fat_buf[SECTOR_SIZE * 12];
+
+static int read_lba(ubyte_t *buf, uword_t lba)
+{
+    uword_t sector = (lba % bpb.sectors_per_track) + 1;
+    uword_t tmp = lba / bpb.sectors_per_track;
+    uword_t head = tmp % bpb.head_count;
+    uword_t cylinder = tmp / bpb.head_count;
+    return bios_read_sectors(buf, 1, cylinder, head, sector, g_driveno);
+}
+
+static uword_t next_cluster(uword_t clusterno)
+{
+    uword_t off = clusterno + clusterno / 2;
+    uword_t v = *(uword_t *)&fat_buf[off];
+    return (clusterno & 1) ? (v >> 4) : (v & EOC);
+}
+
+static inline bool_t same_filenames(const char *name1, const char *name2)
+{
+    return memcmp(name1, name2, FILENAME_LENGTH) == 0;
+}
+
+static int copy_bpb(ubyte_t *buf)
+{
+    if (bios_read_sectors(buf, 1, 0, 0, 1, g_driveno) == -1)
+        return -1;
+    memcpy(&bpb, buf, sizeof(bpb));
+
+    /* also check this since we are here */
+    if (bpb.sectors_per_fat > 12)
+        return -1;
+}
+
 int fat12_read_file(const char *filename, void *buf)
 {
-    static ubyte_t sector[512];
-    struct info *inf = (struct info *)sector;
-    int result = bios_read_sectors(inf, 1, 0, 0, 1, g_driveno);
-    if (result == -1)
+    static ubyte_t sector_buf[SECTOR_SIZE];
+    static ubyte_t dir_buf[SECTOR_SIZE];
+
+    if (copy_bpb(sector_buf) == -1)
         return -1;
 
-    inf->oem_label[OEM_LABEL_SIZE - 1] = '\0';
-    inf->filesystem[FS_NAME_SIZE - 1] = '\0';
-    inf->volume_label[VOLUME_LABEL_SIZE - 1] = '\0';
+    uword_t fat_start = bpb.reserved_for_boot;
+    uword_t root_start = fat_start + bpb.number_of_fats * bpb.sectors_per_fat;
+    uword_t root_sectors = (bpb.rootdir_entries * ENTRY_SIZE + bpb.bytes_per_sector - 1)
+        / bpb.bytes_per_sector;
+    uword_t data_start = root_start + root_sectors;
 
-    printf("OEM label: %s\r\n", inf->oem_label);
-    printf("Filesystem: %s\r\n", inf->filesystem);
-    printf("Volume label: %s\r\n", inf->volume_label);
-    printf("There are %d bytes per sector.\r\n", inf->bytes_per_sector);
-    printf("Signature is 0x%x.\r\n", inf->signature);
+    for (uword_t s = 0; s < bpb.sectors_per_fat; s++) {
+        if (read_lba(fat_buf + s * SECTOR_SIZE, fat_start + s) == -1)
+            return -1;
+    }
+
+    uword_t first_cluster = 0;
+    int found = 0;
+
+    for (uword_t sect = 0; sect < root_sectors && !found; sect++) {
+        if (read_lba(dir_buf, root_start + sect) == -1)
+            return -1;
+
+        for (uword_t i = 0; i < SECTOR_SIZE; i += ENTRY_SIZE) {
+            if (dir_buf[i] == EOD)
+                return -1;
+            if (dir_buf[i] == REMOVED)
+                continue;
+            if (dir_buf[i + FILENAME_LENGTH] & VOLUME_LABEL)
+                continue;
+
+            if (same_filenames(&dir_buf[i], filename)) {
+                first_cluster = *(uword_t *)&dir_buf[i + 26];
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    if (!found)
+        return -1;
+
+    ubyte_t *dest = (ubyte_t *)buf;
+    uword_t cluster = first_cluster;
+
+    while (cluster >= 2 && cluster < 0xff7) {
+        uword_t lba = data_start + (cluster - 2) * bpb.sectors_per_cluster;
+
+        for (ubyte_t i = 0; i < bpb.sectors_per_cluster; i++) {
+            if (read_lba(dest, lba + i) == -1)
+                return -1;
+            dest += bpb.bytes_per_sector;
+        }
+
+        cluster = next_cluster(cluster);
+    }
 
     return 0;
 }
