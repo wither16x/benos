@@ -1,6 +1,6 @@
 #include "fs/fat12.h"
 #include "bios/disk.h"
-#include "lib/display.h"
+#include "lib/format.h"
 #include "kernel.h"
 
 #define OEM_LABEL_SIZE (8)
@@ -35,24 +35,19 @@ int fat12_read_file(const char *filename, void *buf)
 {
     static ubyte_t sector[512];
     struct info *inf = (struct info *)sector;
-    print("Reading info...\r\n");
     int result = bios_read_sectors(inf, 1, 0, 0, 1, g_driveno);
-    if (result == -1) {
-        print("An error occured.");
+    if (result == -1)
         return -1;
-    }
 
-    print("OEM label = ");
-    print_until(inf->oem_label, OEM_LABEL_SIZE);
-    print("\r\n");
+    inf->oem_label[OEM_LABEL_SIZE - 1] = '\0';
+    inf->filesystem[FS_NAME_SIZE - 1] = '\0';
+    inf->volume_label[VOLUME_LABEL_SIZE - 1] = '\0';
 
-    print("Filesystem = ");
-    print_until(inf->filesystem, FS_NAME_SIZE);
-    print("\r\n");
-
-    print("Volume label = ");
-    print_until(inf->volume_label, VOLUME_LABEL_SIZE);
-    print("\r\n");
+    printf("OEM label: %s\r\n", inf->oem_label);
+    printf("Filesystem: %s\r\n", inf->filesystem);
+    printf("Volume label: %s\r\n", inf->volume_label);
+    printf("There are %d bytes per sector.\r\n", inf->bytes_per_sector);
+    printf("Signature is 0x%x.\r\n", inf->signature);
 
     return 0;
 }
