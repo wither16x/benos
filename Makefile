@@ -9,7 +9,8 @@ image: build
 	@echo "Building image: $(IMAGE)"
 	@mkdir -p images
 	@dd if=/dev/zero of=$(IMAGE) bs=512 count=2880 status=none
-	@mformat -v BENOS -i $(IMAGE) -f 1440 -B $(BOOTLOADER) ::
+	@mkfs.fat -F 12 -R 2 -r 224 -s 1 -f 2 -n BENOS $(IMAGE)
+	@dd if=$(BOOTLOADER) of=$(IMAGE) bs=512 count=2 conv=notrunc status=none
 	@mcopy -i $(IMAGE) $(KERNEL) ::
 	@for file in base/* ; do \
 		mcopy -i $(IMAGE) $$file :: ; \

@@ -9,7 +9,7 @@ ORG 0x7c00
 oem_label           db "BENBOOT "
 bytes_per_sector    dw 512
 sectors_per_cluster db 1
-reserved_for_boot   dw 1
+reserved_for_boot   dw 2
 number_of_fats      db 2
 rootdir_entries     dw 224
 logical_sectors     dw 2880
@@ -26,6 +26,7 @@ volume_label        db "BENOS      "
 filesystem          db "FAT12   "
 
 start:
+    cld
     xor ax, ax
     mov ds, ax
     mov es, ax
@@ -35,16 +36,38 @@ start:
     mov [driveno], dl
 
     call clear_screen
-
     call show_menu
 
+    call reset_disk
+
+    mov bx, 0x7e00
+    mov ah, 0x02
+    mov al, 1
+    xor ch, ch
+    mov cl, 2
+    xor dh, dh
+    mov dl, [driveno]
+    int 0x13
+    jc disk_error
+
+    jmp stage2
+
+hang:
+    hlt
+    jmp hang
+
+%include "display.asm"
+%include "disk.asm"
+%include "menu.asm"
+
+times 510 - ($ - $$) db 0
+dw 0xaa55
+
+stage2:
 ; If we get here then the user decided to load the kernel
     call clear_screen
 
-; Try to load the kernel
-    call reset_disk
-
-    mov ax, 19
+    mov ax, 20
     call calc_registers_from_logical
 
     mov si, buffer
@@ -80,34 +103,60 @@ find_file:
 
 found_file:
     mov ax, word [es:di + 0x0f]
+    mov [cluster], ax
 
-    add ax, 31
+    mov ax, 2
     call calc_registers_from_logical
+    mov bx, buffer
+    mov ah, 0x02
+    mov al, 9
+    int 0x13
+    jc disk_error
 
     mov ax, 0x2000
     mov es, ax
     xor bx, bx
-    xor ax, ax
+
+.next_cluster:
+    mov ax, [cluster]
+    add ax, 32
+    call calc_registers_from_logical
     mov ah, 0x02
     mov al, 1
-
     int 0x13
     jc disk_error
+    add bx, 512
+
+    mov ax, [cluster]
+    mov cx, ax
+    shr cx, 1
+    add cx, ax
+    mov si, buffer
+    add si, cx
+    mov dx, [si]
+    test al, 1
+    jz .even
+    shr dx, 4
+    jmp .done
+
+.even:
+    and dx, 0x0fff
+
+.done:
+    mov [cluster], dx
+    cmp dx, 0x0ff8
+    jb .next_cluster
 
     mov dl, byte [driveno] ; pass driveno to the kernel
     jmp 0x2000:0x0000
 
-hang:
+hang2:
     hlt
-    jmp hang
-
-%include "display.asm"
-%include "disk.asm"
-%include "menu.asm"
+    jmp hang2
 
 filename        db "KERNEL  BIN"
+cluster         dw 0
 
-times 510 - ($ - $$) db 0
-dw 0xaa55
+times (2 * 512) - ($ - $$) db 0
 
 buffer:

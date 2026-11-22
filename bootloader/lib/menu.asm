@@ -7,6 +7,7 @@ BITS 16
 %include "disk.asm"
 
 show_menu:
+    push ax
     push si
 
     mov si, title
@@ -30,11 +31,9 @@ show_menu:
     call clear_screen
     call show_menu
 
-    pop si
-    ret
-
 .continue:
     pop si
+    pop ax
     ret
 
 .reboot:
@@ -47,7 +46,7 @@ show_menu:
         mov ah, 0x86
         mov cx, 0x000f
         mov dx, 0x4240
-        int 15h
+        int 0x15
         dec bx
         jnz .wait
 
