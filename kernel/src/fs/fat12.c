@@ -6,6 +6,7 @@
 #include "lib/string.h"
 #include "lib/memory.h"
 #include "lib/pointers.h"
+#include "lib/chars.h"
 #include "kernel.h"
 
 #define OEM_LABEL_SIZE (8)
