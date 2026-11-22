@@ -9,7 +9,7 @@ void kmain(void)
     __asm mov [g_driveno], dl
 
     static char buf[2048];
-    int result = fat12_read_file("LICENSE TXT", buf);
+    int result = fat12_read_file("hello.c", buf);
     if (result == -1)
         printf("Failed to read file.\r\n");
     printf("%s", buf);

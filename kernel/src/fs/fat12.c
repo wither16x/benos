@@ -1,8 +1,11 @@
+/* Dirty FAT12 driver for BenOS */
+
 #include "fs/fat12.h"
 #include "bios/disk.h"
 #include "lib/format.h"
 #include "lib/string.h"
 #include "lib/memory.h"
+#include "lib/pointers.h"
 #include "kernel.h"
 
 #define OEM_LABEL_SIZE (8)
@@ -77,6 +80,37 @@ static int copy_bpb(ubyte_t *buf)
     /* also check this since we are here */
     if (bpb.sectors_per_fat > 12)
         return -1;
+
+    return 0;
+}
+
+/* Convert a standard filename to a 8.3 filename */
+static char *convert_filename(char *filename)
+{
+    static char new_filename[FILENAME_LENGTH];
+    int len = strlen(filename);
+
+    int dot_pos = 0;
+    for (; dot_pos < len && filename[dot_pos] != '.'; dot_pos++);
+
+    if (dot_pos == 0 || dot_pos > 8)
+        return NULL;
+    if (dot_pos < len && len - dot_pos - 1 > 3)
+        return NULL;
+
+    for (int i = 0; i < FILENAME_LENGTH; i++)
+        new_filename[i] = ' ';
+
+    memmove(new_filename, filename, dot_pos);
+    if (dot_pos < len)
+        memmove(new_filename + 8, filename + dot_pos + 1, len - dot_pos - 1);
+
+    for (int i = 0; i < FILENAME_LENGTH; i++) {
+        if (islower(new_filename[i]))
+            new_filename[i] = to_upper(new_filename[i]);
+    }
+
+    return new_filename;
 }
 
 int fat12_read_file(const char *filename, void *buf)
@@ -86,6 +120,8 @@ int fat12_read_file(const char *filename, void *buf)
 
     if (copy_bpb(sector_buf) == -1)
         return -1;
+
+    filename = convert_filename((char *)filename);
 
     uword_t fat_start = bpb.reserved_for_boot;
     uword_t root_start = fat_start + bpb.number_of_fats * bpb.sectors_per_fat;
