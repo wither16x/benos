@@ -4,7 +4,6 @@
 
 ubyte_t g_driveno = 0;
 extern void handle_interrupt(void);
-unsigned old_off, old_seg;
 
 void kmain(void)
 {
