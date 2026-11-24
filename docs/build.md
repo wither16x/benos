@@ -2,11 +2,20 @@
 
 This is a guide on how to build BenOS.
 
-## Steps
+## Build a disk image
 
-1. Install the required dependencies, which are `make` and `nasm`. If your package manager is APT, then you can run [`get-deps.sh`](/scripts/get-deps.sh)?
-2. Build tbe image by running `make` from the root of the repository.
-3. **(optional)** Run the image in qemu:
+Required dependencies:
+* nasm
+* make
+* wcc
+* wlink
+
+In order to compile the bootloader, the kernel and build a disk image, you must run the Makefile at the root of the repository using `make`. It should compile the bootloader and the kernel and create a disk image in `images/`.  
+
+## Build programs
+
+There are pre-made programs in `programs/` which are meant to be integrated to the disk image. You must build them before building the disk image. Run
+
 ```sh
-make run
+make -C programs
 ```

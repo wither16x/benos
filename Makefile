@@ -15,6 +15,10 @@ image: build
 	@for file in base/* ; do \
 		mcopy -i $(IMAGE) $$file :: ; \
 	done
+	@for file in programs/*/*.bin ; do \
+		[ -e "$$file" ] || continue ; \
+		mcopy -i $(IMAGE) "$$file" :: ; \
+	done
 
 build:
 	@echo "Building bootloader..."

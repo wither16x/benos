@@ -1,6 +1,6 @@
 # BenOS
 
-A 16-bit x86 operating system made from scratch for fun.
+A dirty 16-bit x86 operating system made from scratch for fun.
 
 ## Documentation
 

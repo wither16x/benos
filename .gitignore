@@ -1,3 +1,10 @@
+# Directories named "build" are supposed to contain intermediate files such as binaries
+# or cached data.
 build/
-/images/
+
+# Other intermediate files in case they are not in build directories.
+*.bin
 *.err
+
+# BenOS disk images.
+/images/
